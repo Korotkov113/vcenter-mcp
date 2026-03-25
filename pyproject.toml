@@ -32,9 +32,9 @@ dev = [
 vcenter-mcp = "vcenter_mcp.server:main"
 
 [project.urls]
-Homepage = "https://github.com/stream/vcenter-mcp"
-Repository = "https://github.com/stream/vcenter-mcp"
-Issues = "https://github.com/stream/vcenter-mcp/issues"
+Homepage = "https://github.com/Korotkov113/vcenter-mcp"
+Repository = "https://github.com/Korotkov113/vcenter-mcp"
+Issues = "https://github.com/Korotkov113/vcenter-mcp/issues"
 
 [build-system]
 requires = ["hatchling"]

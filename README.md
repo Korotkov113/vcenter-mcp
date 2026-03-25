@@ -1,62 +1,121 @@
 # vcenter-mcp
 
-An MCP (Model Context Protocol) server for **VMware vCenter 8** and **ESXi 8** that lets Claude manage your virtual infrastructure through natural language.
-
-Built with [FastMCP](https://github.com/modelcontextprotocol/python-sdk) and the [vCenter 8 REST API](https://developer.vmware.com/apis/vsphere-automation/latest/vcenter/).
-
----
+MCP server for VMware vCenter 8 and ESXi 8 — manage VMs, hosts, clusters, networks, datastores and performance metrics via AI assistants (Claude Desktop, Claude Code, etc.)
 
 ## Features
 
-| Category | Tools |
-|---|---|
-| **Virtual Machines** | List, get details, power on/off/reset/suspend, create, clone, delete, update hardware |
-| **ESXi Hosts** | List, get info, maintenance mode, DNS/NTP config, physical NICs |
-| **Clusters** | List clusters, resource pools, datacenters, folders |
-| **Datastores** | List with capacity/free space, get details |
-| **Networks — vSwitch** | List/get/create/update/delete standard vSwitches and port groups |
-| **Networks — dvSwitch** | List/get distributed switches, list/get/add dvPortGroups, create dvSwitch |
-| **vmkernel Adapters** | List/get/create vmk adapters (management, vMotion, vSAN, iSCSI) |
-| **Troubleshooting** | `diagnose_network` (collects NICs + vmks + vSwitches + routes in one call), host connectivity check |
-| **Metrics** | VM and host CPU/RAM/disk/network stats, list vCenter tasks, VCSA health |
+- **VM lifecycle** — list, inspect, create, clone, delete, power on/off/reset/suspend
+- **ESXi host management** — status, DNS/NTP config, maintenance mode, alarms
+- **Network operations** — standard vSwitch, dvSwitch, port groups, vmkernel adapters, physical NICs, full network diagnostics
+- **Cluster & inventory** — clusters, resource pools, datacenters, folders
+- **Datastores** — list and inspect with capacity metrics
+- **Performance metrics** — CPU, memory, disk and network stats for VMs and hosts, vCenter tasks, VCSA health
+- **Auto re-authentication** — transparent session renewal on 401
 
----
+## Tools
 
-## Requirements
+### Virtual Machines
 
-- Python 3.11+
-- vCenter Server 8.x with REST API enabled
-- Network access from the MCP server host to vCenter HTTPS (port 443)
+| Tool | Description |
+|------|-------------|
+| `list_vms` | List VMs with optional filters (power state, cluster, host, datastore) |
+| `get_vm` | Full VM details: CPU, memory, disks, NICs, guest OS |
+| `get_vm_power_state` | Get current power state |
+| `power_on_vm` | Power on a VM |
+| `power_off_vm` | Hard power off |
+| `reset_vm` | Hard reset (restart) |
+| `suspend_vm` | Suspend to disk |
+| `create_vm` | Create new VM with specified CPU, memory, placement |
+| `clone_vm` | Clone VM or template |
+| `delete_vm` | Delete VM (optionally force power-off first) |
+| `update_vm_hardware` | Update CPU count or memory (VM must be off) |
 
----
+### ESXi Hosts
+
+| Tool | Description |
+|------|-------------|
+| `list_hosts` | List hosts with optional filters |
+| `get_host` | Host details: connection state, power state, FQDN |
+| `get_host_network_config` | Full network config: DNS, vmk adapters, IP routing |
+| `get_host_dns` | DNS hostname, domain, servers |
+| `get_host_ntp` | NTP service config |
+| `list_host_datastores` | Datastores accessible from a host |
+| `list_host_alarms` | Triggered alarms on a host |
+| `enter_maintenance_mode` | Put host into maintenance mode |
+| `exit_maintenance_mode` | Exit maintenance mode |
+
+### Clusters & Inventory
+
+| Tool | Description |
+|------|-------------|
+| `list_clusters` | List clusters (HA/DRS flags) |
+| `get_cluster` | Cluster details including HA and DRS config |
+| `list_resource_pools` | Resource pools by cluster or host |
+| `get_resource_pool` | CPU/memory limits and reservations |
+| `list_datacenters` | List all datacenters |
+| `list_folders` | Inventory folders by datacenter and type |
+
+### Networks
+
+| Tool | Description |
+|------|-------------|
+| `list_networks` | All networks: standard and distributed port groups |
+| `list_vswitches` | Standard vSwitches on a host |
+| `get_vswitch` | vSwitch config: MTU, uplinks, teaming, security |
+| `create_vswitch` | Create standard vSwitch |
+| `update_vswitch` | Update MTU / port count |
+| `delete_vswitch` | Delete vSwitch |
+| `list_portgroups` | Standard port groups with VLAN and vSwitch info |
+| `get_portgroup` | Port group security policy |
+| `add_portgroup` | Add port group to a vSwitch |
+| `remove_portgroup` | Remove port group |
+| `list_distributed_switches` | List dvSwitches |
+| `get_distributed_switch` | dvSwitch details: version, MTU, port count |
+| `list_dvportgroups` | Distributed port groups with VLAN and binding info |
+| `get_dvportgroup` | dvPortGroup: VLAN, port binding, teaming |
+| `create_distributed_switch` | Create dvSwitch in a datacenter |
+| `add_dvportgroup` | Add dvPortGroup (access or trunk VLAN) |
+| `list_vmkernel_adapters` | vmk adapters: IP, MTU, services |
+| `get_vmkernel_adapter` | vmk adapter details and MAC |
+| `create_vmkernel_adapter` | Create vmk adapter (management, vMotion, vSAN...) |
+| `check_host_connectivity` | Check vCenter to ESXi connectivity |
+| `get_host_physical_nics` | Physical NICs: speed, duplex, driver, MAC |
+| `get_physical_nic` | Detailed pNIC info and firmware |
+| `get_host_ip_routing` | IP routing table and TCP/IP stacks |
+| `diagnose_network` | All-in-one network diagnostic (pNICs + vmk + vSwitch + portgroups + routes + DNS) |
+
+### Datastores
+
+| Tool | Description |
+|------|-------------|
+| `list_datastores` | Datastores with capacity and free space |
+| `get_datastore` | Datastore type, capacity, free space, accessible flag |
+
+### Performance & Tasks
+
+| Tool | Description |
+|------|-------------|
+| `list_tasks` | Recent and running vCenter tasks |
+| `get_task` | Status and result of a specific task |
+| `list_stat_counters` | Available performance counter IDs |
+| `get_vm_stats` | VM stats: CPU %, RAM %, disk I/O, network throughput |
+| `get_host_stats` | Host stats: CPU %, RAM %, network I/O |
+| `get_vcsa_health` | VCSA overall health |
+| `get_vcsa_component_health` | Health per VCSA component (database, swap, storage...) |
 
 ## Installation
 
-### Using uvx (recommended — no install needed)
-
 ```bash
-uvx vcenter-mcp
-```
-
-### Using pip
-
-```bash
-pip install vcenter-mcp
-vcenter-mcp
-```
-
-### From source
-
-```bash
-git clone https://github.com/stream/vcenter-mcp
+git clone https://github.com/Korotkov113/vcenter-mcp.git
 cd vcenter-mcp
-pip install -e ".[dev]"
-vcenter-mcp
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
 ```
-
----
 
 ## Configuration
+
+### Environment variables
 
 Copy `.env.example` to `.env` and fill in your vCenter details:
 
@@ -67,88 +126,79 @@ cp .env.example .env
 ```env
 VCENTER_HOST=vcenter.yourdomain.local
 VCENTER_USERNAME=administrator@vsphere.local
-VCENTER_PASSWORD=your-password
+VCENTER_PASSWORD=your-password-here
 VCENTER_PORT=443
-VCENTER_SSL_VERIFY=true   # Set to false for self-signed certs (lab environments)
+
+# Set to false for self-signed certificates (lab environments)
+VCENTER_SSL_VERIFY=true
 ```
 
----
+### Claude Desktop / Claude Code
 
-## Claude Code Integration
-
-Add to `~/.claude/settings.json`:
+Add to your MCP config (`claude_desktop_config.json` or `.claude/settings.json`):
 
 ```json
 {
   "mcpServers": {
     "vcenter": {
-      "command": "uvx",
-      "args": ["vcenter-mcp"],
+      "command": "/path/to/vcenter-mcp/.venv/bin/vcenter-mcp",
       "env": {
         "VCENTER_HOST": "vcenter.yourdomain.local",
         "VCENTER_USERNAME": "administrator@vsphere.local",
-        "VCENTER_PASSWORD": "your-password",
-        "VCENTER_SSL_VERIFY": "false"
+        "VCENTER_PASSWORD": "your-password-here",
+        "VCENTER_SSL_VERIFY": "true"
       }
     }
   }
 }
 ```
 
----
+## Usage examples
 
-## Example prompts
+### Troubleshoot a VM with no network connectivity
 
-Once configured, you can ask Claude:
+```
+> Why does dc8 have no network? Check its NIC and run a full network diagnostic on its host.
+```
 
-- *"List all powered-on VMs in cluster prod-cluster-01"*
-- *"Show me the network configuration of ESXi host host-10"*
-- *"Create a vSwitch named vSwitch2 with jumbo frames (MTU 9000) on host-10"*
-- *"Add a port group named 'VLAN-100' with VLAN ID 100 to vSwitch1 on host-10"*
-- *"What's the CPU and memory usage of vm-42 over the last 5 minutes?"*
-- *"Run a network diagnostic on host-10"*
-- *"List all running vCenter tasks"*
-- *"Power off all VMs in datastore old-datastore"*
-- *"Show me all dvSwitch port groups with VLAN trunk configuration"*
+### Manage VM power
 
----
+```
+> Power on web-01 and suspend db-02
+```
+
+### Inspect dvSwitch port groups
+
+```
+> Show all distributed port groups and their VLAN config
+```
+
+### Check host health before maintenance
+
+```
+> Put host-10 into maintenance mode after checking its alarms and running tasks
+```
+
+### Performance overview
+
+```
+> Show CPU and memory usage for the last 30 minutes for vm-42
+```
+
+## Requirements
+
+- Python 3.11+
+- VMware vCenter 8.x or ESXi 8.x with REST API enabled
+- An account with appropriate read (or read/write) permissions
 
 ## Development
 
 ```bash
-# Install with dev dependencies
 pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Lint
 ruff check src/
-
-# Interactive MCP inspector
-mcp dev src/vcenter_mcp/server.py
+pytest -v
 ```
-
----
-
-## Architecture
-
-```
-vcenter_mcp/
-├── server.py      FastMCP app with lifespan (creates/destroys VCenterClient)
-├── client.py      Async httpx client — auth, retry on 401, error handling
-├── config.py      pydantic-settings — reads from env / .env file
-└── tools/
-    ├── vms.py         VM CRUD + power management
-    ├── hosts.py       ESXi host info + maintenance mode
-    ├── clusters.py    Clusters, resource pools, datacenters
-    ├── networks.py    vSwitch, dvSwitch, portgroups, vmk adapters, troubleshooting
-    ├── datastores.py  Datastore listing and details
-    └── metrics.py     Performance stats + VCSA health + task tracking
-```
-
----
 
 ## License
 
-MIT © 2026 stream
+MIT License. See [LICENSE](LICENSE).
